@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spired
+      POSTGRES_USER: spired
+      POSTGRES_PASSWORD: spired
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  db_test:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spired_test
+      POSTGRES_USER: spired
+      POSTGRES_PASSWORD: spired
+    ports:
+      - "5433:5432"
+
+volumes:
+  postgres_data:

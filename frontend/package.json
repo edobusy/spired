@@ -1,0 +1,18 @@
+{
+	"name": "@spired/frontend",
+	"version": "1.0.0",
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build"
+	},
+	"dependencies": {
+		"next": "^15.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0"
+	},
+	"devDependencies": {
+		"@spired/shared": "*",
+		"typescript": "^5.8.0",
+		"@types/react": "^19.0.0"
+	}
+}
