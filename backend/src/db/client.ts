@@ -1,9 +1,6 @@
 import postgres from "postgres"
+import { config } from "../config.ts"
 
-const connectionString = process.env.DATABASE_URL
-
-if (!connectionString) {
-	throw new Error("DATABASE_URL environment variable is not set")
-}
+const connectionString = config.databaseUrl
 
 export const db = postgres(connectionString)

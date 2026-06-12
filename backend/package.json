@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"type": "module",
 	"scripts": {
-		"dev": "node --watch --experimental-strip-types src/index.ts",
+		"dev": "node --env-file=../.env --watch --experimental-strip-types src/index.ts",
 		"test": "vitest"
 	},
 	"devDependencies": {
@@ -13,6 +13,8 @@
 		"vitest": "^4.1.7"
 	},
 	"dependencies": {
+		"@hono/node-server": "^2.0.4",
+		"hono": "^4.12.25",
 		"postgres": "^3.4.9"
 	}
 }
