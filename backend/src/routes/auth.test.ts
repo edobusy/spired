@@ -102,4 +102,40 @@ describe("POST /auth/register", () => {
 
 		expect(body.error.toLowerCase()).toContain("email")
 	})
+
+	test("returns 409 when the username is already taken", async () => {
+		const payload = {
+			email: "user@test.test",
+			username: "user",
+			display_name: "Test User",
+			password: "TestTest1000",
+		}
+
+		const firstRegistrationRes = await app.request("/auth/register", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+		})
+
+		expect(firstRegistrationRes.status).toBe(201)
+
+		const sameUsernamePayload = {
+			email: "different@test.test",
+			username: "user",
+			display_name: "Test User 123",
+			password: "TestTest1020330",
+		}
+
+		const secondRegistrationRes = await app.request("/auth/register", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(sameUsernamePayload),
+		})
+
+		expect(secondRegistrationRes.status).toBe(409)
+
+		const body = await secondRegistrationRes.json()
+
+		expect(body.error.toLowerCase()).toContain("username")
+	})
 })
