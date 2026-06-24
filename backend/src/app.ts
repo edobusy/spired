@@ -1,6 +1,8 @@
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { authRouter } from "./routes/auth.ts"
+import { requireAuth } from "./middleware/auth.ts"
+import { db } from "./db/client.ts"
 
 export const app = new Hono()
 
@@ -14,5 +16,17 @@ app.onError((err, c) => {
 })
 
 app.get("/health", (c) => c.json({ status: "ok" }))
+
+app.get("/me", requireAuth, async (c) => {
+	const userId = c.get("userId")
+	const [user] =
+		await db`SELECT id, email, username, display_name, bio, avatar_url, created_at FROM users WHERE id = ${userId}`
+
+	if (!user) {
+		return c.json({ error: "User not found" }, 404)
+	}
+
+	return c.json({ user })
+})
 
 app.route("/auth", authRouter)
