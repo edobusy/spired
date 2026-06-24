@@ -139,3 +139,90 @@ describe("POST /auth/register", () => {
 		expect(body.error.toLowerCase()).toContain("username")
 	})
 })
+
+async function registerTestUser() {
+	const registrationPayload = {
+		email: "user@test.test",
+		username: "user",
+		display_name: "Test User",
+		password: "TestTest1000",
+	}
+
+	const registrationRes = await app.request("/auth/register", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(registrationPayload),
+	})
+
+	return registrationRes
+}
+
+describe("POST /auth/login", () => {
+	test("returns 200 when credentials are valid, and sends a valid session cookie", async () => {
+		await registerTestUser()
+
+		const loginPayload = {
+			email: "user@test.test",
+			password: "TestTest1000",
+		}
+
+		const loginRes = await app.request("/auth/login", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(loginPayload),
+		})
+
+		expect(loginRes.status).toBe(200)
+
+		const setCookie = loginRes.headers.get("set-cookie")
+		expect(setCookie).toContain("session=")
+		expect(setCookie).toContain("HttpOnly")
+	})
+
+	test("returns 401 when the password is wrong", async () => {
+		await registerTestUser()
+
+		const loginPayload = {
+			email: "user@test.test",
+			password: "TestTest99999",
+		}
+
+		const loginRes = await app.request("/auth/login", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(loginPayload),
+		})
+
+		expect(loginRes.status).toBe(401)
+	})
+
+	test("returns 401 when the email does not match any registered email", async () => {
+		await registerTestUser()
+
+		const loginPayload = {
+			email: "user101@test.test",
+			password: "TestTest1000",
+		}
+
+		const loginRes = await app.request("/auth/login", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(loginPayload),
+		})
+
+		expect(loginRes.status).toBe(401)
+	})
+})
+
+describe("POST /auth/logout", () => {
+	test("returns 200, and the session cookie is cleared", async () => {
+		const logoutRes = await app.request("/auth/logout", {
+			method: "POST",
+		})
+
+		expect(logoutRes.status).toBe(200)
+
+		const setCookie = logoutRes.headers.get("set-cookie")
+		expect(setCookie).toContain("Max-Age=0")
+	})
+})
