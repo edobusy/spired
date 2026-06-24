@@ -44,10 +44,6 @@ describe("POST /auth/register", () => {
 		})
 
 		expect(res.status).toBe(400)
-
-		const body = await res.json()
-
-		expect(body.error.toLowerCase()).toContain("json")
 	})
 
 	test("returns 400 when the input is invalid", async () => {

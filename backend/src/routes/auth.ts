@@ -1,10 +1,23 @@
 import { Hono } from "hono"
+import { zValidator } from "@hono/zod-validator"
+import { deleteCookie, setCookie } from "hono/cookie"
 import { z } from "zod"
 import postgres from "postgres"
 import { db } from "../db/client.ts"
 import { hashPassword, verifyPassword } from "../lib/hash.ts"
-import { deleteCookie, setCookie } from "hono/cookie"
 import { createToken } from "../lib/token.ts"
+
+function validateBody<T extends z.ZodType>(schema: T) {
+	const validator = zValidator("json", schema, (result, c) => {
+		if (!result.success) {
+			return c.json({ error: "Invalid input" }, 400)
+		}
+	})
+
+	return validator
+}
+
+export const authRouter = new Hono()
 
 const registerSchema = z.object({
 	email: z.email(),
@@ -17,23 +30,8 @@ const registerSchema = z.object({
 	password: z.string().min(10),
 })
 
-export const authRouter = new Hono()
-
-authRouter.post("/register", async (c) => {
-	let body
-	try {
-		body = await c.req.json()
-	} catch {
-		return c.json({ error: "Invalid JSON body" }, 400)
-	}
-
-	const parsed = registerSchema.safeParse(body)
-
-	if (!parsed.success) {
-		return c.json({ error: "Invalid input" }, 400)
-	}
-
-	const { email, username, display_name, password } = parsed.data
+authRouter.post("/register", validateBody(registerSchema), async (c) => {
+	const { email, username, display_name, password } = c.req.valid("json")
 
 	const passwordHash = await hashPassword(password)
 
@@ -64,21 +62,8 @@ const loginSchema = z.object({
 	password: z.string().min(1),
 })
 
-authRouter.post("/login", async (c) => {
-	let body
-	try {
-		body = await c.req.json()
-	} catch {
-		return c.json({ error: "Invalid JSON body" }, 400)
-	}
-
-	const parsed = loginSchema.safeParse(body)
-
-	if (!parsed.success) {
-		return c.json({ error: "Invalid input" }, 400)
-	}
-
-	const { email, password } = parsed.data
+authRouter.post("/login", validateBody(loginSchema), async (c) => {
+	const { email, password } = c.req.valid("json")
 
 	const [user] = await db<
 		{ id: string; password_hash: string }[]
