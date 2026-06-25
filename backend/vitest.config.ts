@@ -2,6 +2,7 @@ import { defineConfig } from "vitest/config"
 
 export default defineConfig({
 	test: {
+		fileParallelism: false,
 		env: {
 			DATABASE_URL: "postgres://spired:spired@localhost:5433/spired_test",
 			DATABASE_TEST_URL: "postgres://spired:spired@localhost:5433/spired_test",
