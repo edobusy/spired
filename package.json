@@ -9,6 +9,8 @@
 	"scripts": {
 		"dev:backend": "npm run dev --workspace=backend",
 		"dev:frontend": "npm run dev --workspace=frontend",
-		"test": "npm run test --workspace=backend"
+		"test": "npm run test --workspace=backend",
+		"test:run": "npm run test:run --workspace=backend",
+		"typecheck": "npm run typecheck --workspace=backend"
 	}
 }
