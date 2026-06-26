@@ -41,3 +41,32 @@ export const requireRole = (roleName: string) => {
 		await next()
 	})
 }
+
+export const requireOwnership = (
+	tableName: string,
+	ownerColumn: string = "user_id",
+) => {
+	return createMiddleware<AuthEnv>(async (c, next) => {
+		const rowId = c.req.param("id")
+
+		if (!rowId) {
+			return c.json({ error: "Not Found" }, 404)
+		}
+
+		const [resource] = await db`
+			SELECT ${db(ownerColumn)} 
+			FROM ${db(tableName)}
+			WHERE id = ${rowId}
+		`
+
+		if (!resource) {
+			return c.json({ error: "Not Found" }, 404)
+		}
+
+		if (resource[ownerColumn] !== c.get("userId")) {
+			return c.json({ error: "Forbidden" }, 403)
+		}
+
+		await next()
+	})
+}
