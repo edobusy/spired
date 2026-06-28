@@ -11,3 +11,13 @@ describe("GET /health", () => {
 		expect(data).toEqual({ status: "ok" })
 	})
 })
+
+describe("security headers", () => {
+	test("are properly set and sent as part of the response of any request", async () => {
+		const res = await app.request("/health")
+
+		expect(res.headers.get("content-security-policy")).toBe(
+			"default-src 'none'; frame-ancestors 'none'",
+		)
+	})
+})

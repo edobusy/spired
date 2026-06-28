@@ -53,6 +53,9 @@ export const requireOwnership = (
 			return c.json({ error: "Not Found" }, 404)
 		}
 
+		// Once we implement nested paths, let's parameterize id as well, as we will have to give multiple unique names
+		// Example: /resource/:resourceId/component/:componentId
+		// It cannot be: /resource/:id/component/:id
 		const [resource] = await db`
 			SELECT ${db(ownerColumn)} 
 			FROM ${db(tableName)}

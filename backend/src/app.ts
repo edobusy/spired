@@ -3,8 +3,19 @@ import { HTTPException } from "hono/http-exception"
 import { authRouter } from "./routes/auth.ts"
 import { requireAuth } from "./middleware/auth.ts"
 import { db } from "./db/client.ts"
+import { secureHeaders } from "hono/secure-headers"
 
 export const app = new Hono()
+
+app.use(
+	"*",
+	secureHeaders({
+		contentSecurityPolicy: {
+			defaultSrc: ["'none'"],
+			frameAncestors: ["'none'"],
+		},
+	}),
+)
 
 app.onError((err, c) => {
 	if (err instanceof HTTPException) {
