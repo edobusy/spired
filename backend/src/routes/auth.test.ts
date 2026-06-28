@@ -2,6 +2,7 @@ import { describe, test, expect, beforeAll, beforeEach } from "vitest"
 import { migrate } from "../db/migrate.ts"
 import { db } from "../db/client.ts"
 import { app } from "../app.ts"
+import { resetRateLimiters } from "../middleware/rate-limit.ts"
 
 beforeAll(async () => {
 	await migrate()
@@ -9,6 +10,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
 	await db`TRUNCATE users CASCADE`
+	resetRateLimiters()
 })
 
 describe("POST /auth/register", () => {
@@ -220,5 +222,53 @@ describe("POST /auth/logout", () => {
 
 		const setCookie = logoutRes.headers.get("set-cookie")
 		expect(setCookie).toContain("Max-Age=0")
+	})
+})
+
+describe("auth rate limiting", () => {
+	test("returns 429 after too many failed login attempts", async () => {
+		await registerTestUser()
+
+		const wrongPayload = {
+			email: "user@test.test",
+			password: "WrongPassword999",
+		}
+
+		for (let i = 0; i < 10; i++) {
+			const res = await app.request("/auth/login", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(wrongPayload),
+			})
+
+			expect(res.status).toBe(401)
+		}
+
+		const blockedRes = await app.request("/auth/login", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(wrongPayload),
+		})
+
+		expect(blockedRes.status).toBe(429)
+	})
+
+	test("does not count successful logins against the limit", async () => {
+		await registerTestUser()
+
+		const correctPayload = {
+			email: "user@test.test",
+			password: "TestTest1000",
+		}
+
+		for (let i = 0; i < 15; i++) {
+			const res = await app.request("/auth/login", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(correctPayload),
+			})
+
+			expect(res.status).toBe(200)
+		}
 	})
 })

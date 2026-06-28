@@ -11,4 +11,5 @@ export const config = {
 	jwtSecret: requireEnv("JWT_SECRET"),
 	corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:3000",
 	port: Number(process.env.PORT) || 4000,
+	isProduction: process.env.NODE_ENV === "production",
 }
