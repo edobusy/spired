@@ -21,6 +21,7 @@
 		"bcrypt": "^6.0.0",
 		"hono": "^4.12.25",
 		"hono-rate-limiter": "^0.5.3",
+		"pino": "^10.3.1",
 		"postgres": "^3.4.9",
 		"zod": "^4.4.3"
 	}

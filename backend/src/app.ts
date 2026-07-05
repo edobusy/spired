@@ -4,8 +4,12 @@ import { authRouter } from "./routes/auth.ts"
 import { requireAuth } from "./middleware/auth.ts"
 import { db } from "./db/client.ts"
 import { secureHeaders } from "hono/secure-headers"
+import { requestLogger } from "./middleware/request-logger.ts"
+import { logger } from "./logger.ts"
 
 export const app = new Hono()
+
+app.use("*", requestLogger(logger))
 
 app.use(
 	"*",
