@@ -6,8 +6,9 @@ import { db } from "./db/client.ts"
 import { secureHeaders } from "hono/secure-headers"
 import { requestLogger } from "./middleware/request-logger.ts"
 import { logger } from "./logger.ts"
+import type { AppEnv } from "./types.ts"
 
-export const app = new Hono()
+export const app = new Hono<AppEnv>()
 
 app.use("*", requestLogger(logger))
 
@@ -26,7 +27,8 @@ app.onError((err, c) => {
 		return c.json({ error: err.message }, err.status)
 	}
 
-	console.error(err)
+	c.get("logger").error(err)
+
 	return c.json({ error: "Internal server error" }, 500)
 })
 
