@@ -1,0 +1,52 @@
+name: Bug report
+description: Report something that is broken or not behaving as expected.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. The more detail you give, the faster it can be fixed.
+  - type: checkboxes
+    attributes:
+      label: Before you start
+      options:
+        - label: I have searched the existing issues and this has not already been reported.
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: A clear description of the bug, and what you expected to happen instead.
+      placeholder: When I do X, Y happens. I expected Z.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can someone else make this happen?
+      placeholder: |
+        1. Start the server with '...'
+        2. Send a request to '...'
+        3. See the error
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Anything relevant about where you hit this.
+      placeholder: |
+        - OS: Windows 11
+        - Node version: 24.0.0
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error output
+      description: Paste any relevant logs. This is automatically formatted as code, so no backticks needed.
+      render: shell
+    validations:
+      required: false

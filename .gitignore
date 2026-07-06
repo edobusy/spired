@@ -32,6 +32,6 @@ Thumbs.db
 .idea/
 *.swp
 
-# Project docs and course material (kept out of the code repo)
-docs/
+# Private working notes and course material (kept out of the code repo)
+notes/
 course/
