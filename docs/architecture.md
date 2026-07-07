@@ -75,6 +75,12 @@ This keeps the full history of the schema in version control, and any developer 
 
 > Note: running migrations on startup is a deliberate shortcut for the current single-instance setup. Before running more than one instance in production, migrations will move to a dedicated deploy step and the app will only check the schema version on boot.
 
+## Logging
+
+Every request is logged as a structured JSON line, so a log service can search and group entries rather than scanning free text. Each request is tagged with a unique id, which means all the lines belonging to one request can be pulled together when tracing a problem, and each records the method, path, status code, and how long the request took. Unexpected server errors are logged too; expected refusals (a bad login, a rate-limited request) are not, so genuine failures stand out.
+
+Logging goes through pino. In development the output is piped through a formatter (`pino-pretty`) so it reads as clean, colorized lines; in production it stays raw JSON for a log service to ingest. A single `LOG_LEVEL` setting controls how much is shown: `info` in normal use, `debug` when investigating, `silent` during tests.
+
 ## Shared types
 
 The `shared` package holds TypeScript types that both sides agree on: what a `User` is, what a `ContentItem` is, and so on. Writing them once keeps the frontend and backend from drifting apart.
@@ -110,4 +116,5 @@ All secrets and environment-specific values live in `.env` (gitignored). `.env.e
 | `JWT_SECRET` | Secret used to sign and verify JWTs. Must be long and random. |
 | `CORS_ORIGIN` | The frontend origin the backend allows |
 | `PORT` | Port the backend listens on |
+| `LOG_LEVEL` | How much logging to emit (`debug`, `info`, `warn`, `error`, `silent`). Defaults to `info`. |
 | `R2_*` | Cloudflare R2 credentials (for planned image uploads) |
