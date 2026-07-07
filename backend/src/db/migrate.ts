@@ -1,6 +1,7 @@
 import { db } from "./client.ts"
 import { readdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
+import { logger } from "../logger.ts"
 
 export async function migrate() {
 	await db`CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -19,7 +20,7 @@ export async function migrate() {
 			await db`SELECT filename from schema_migrations WHERE filename = ${filename}`
 
 		if (existing) {
-			console.log(`Migration Already Applied: ${filename}`)
+			logger.info({ filename }, "migration already applied")
 			continue
 		}
 
@@ -30,6 +31,6 @@ export async function migrate() {
 			await tx`INSERT INTO schema_migrations (filename) VALUES (${filename})`
 		})
 
-		console.log(`Applied Migration: ${filename}`)
+		logger.info({ filename }, "applied migration")
 	}
 }

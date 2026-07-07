@@ -186,6 +186,53 @@ The REST pattern: a path identifies a resource, either a collection (`/reviews`)
 **Trade-off:** A brief boundary burst (up to about twice the limit) is possible; the in-memory store is per-process and lost on restart; shared-IP false positives are mitigated by generous thresholds.
 **Revisit when:** we scale past one instance (the same trigger as migrate-on-startup). Move to a Redis-backed store, at which point sliding-window comes essentially for free.
 
+## Observability
+
+### Structured logging with pino
+
+**Decision:** Log through `pino`, which emits one JSON object per line, rather than `console.log` strings. Each request is given a child logger carrying a unique `requestId`, attached to the request context so every line from that request is tagged and correlatable. The request-logging middleware is a small factory we wrote ourselves (it takes a logger and returns Hono middleware) rather than an off-the-shelf integration.
+**Why:** JSON logs are queryable: an aggregator can filter by level, group by `requestId`, or count events, none of which works on free-text strings. The `requestId` stitches every line from one request together, which is what makes a production incident traceable. Writing the middleware ourselves keeps the dependency surface small and, more importantly, gives us a dependency-injection seam: the logger is passed in as an argument, so a test can inject a logger pointed at an in-memory buffer and assert on the exact lines emitted, with nothing touching stdout.
+**Alternatives:** `console.log` (unstructured, no levels, not queryable); `hono-pino` or similar (works, but hides the wiring and removes the injection seam that makes the middleware cleanly testable).
+**Trade-off:** Raw JSON is unreadable at a dev terminal, addressed by pretty-printing in development only (below).
+
+### The message names the event, the fields carry the data
+
+**Decision:** Every log call uses a static, lowercase message naming the *kind* of event, and passes the variable data as structured fields: `logger.info({ filename }, "applied migration")`, never `logger.info(\`applied migration: ${filename}\`)`.
+**Why:** A constant message is an event identifier the aggregator can group, count, and alert on. Interpolating the variable into the message makes every line a unique string, which defeats grouping (every count becomes one), defeats pattern-based collapsing, and pins nothing an alert can target. The variable is not lost: pino renders fields alongside the message, so a human still reads the filename and a machine can still query it. One static message plus a structured field serves both readers at once.
+
+### One logging context, deliberately app-wide
+
+**Decision:** The logger lives in its own context type (`AppEnv`), separate from the authentication context (`AuthEnv`) that carries `userId`. The logging middleware runs outermost, on every route.
+**Why:** A value belongs in a broad, always-present context type only if it is genuinely always present, otherwise the types lie. The logger is attached to every request by the outermost middleware, so a broad `AppEnv` promising every handler "a logger is here" is true. `userId` is the opposite: it exists only after `requireAuth` on protected routes, so it stays in the narrow `AuthEnv` and does not pollute the type of handlers that never authenticate. The same principle earlier ruled out a global context augmentation.
+
+### Durations from a monotonic clock
+
+**Decision:** Measure request duration with `performance.now()`, not `Date.now()`.
+**Why:** `performance.now()` is monotonic: it only ever advances, at a steady rate. `Date.now()` reads wall-clock time, which can jump backward or forward (NTP corrections, daylight saving) and yield a negative or wildly wrong duration. For an elapsed interval the monotonic clock is the correct instrument.
+
+### Log level is a static threshold, severity is per call
+
+**Decision:** `LOG_LEVEL` (default `info`) sets one threshold for the whole app; the method chosen at each call site (`.debug`, `.info`, `.error`) sets that line's severity. Lines below the threshold are dropped.
+**Why:** These are two independent knobs. Severity is a property of the event, decided in code. The threshold is an operational dial: run at `info` normally, drop to `debug` to investigate, set `silent` in tests. Tests set `LOG_LEVEL=silent` so the real app's logging does not clutter test output, while an injected capture logger still receives what a test explicitly asserts on.
+
+### Only unexpected errors are logged
+
+**Decision:** The central `onError` handler logs only the unexpected 5xx fall-through branch, at `error` level with the serialized error. Expected `HTTPException`s (the 4xx and 429 responses that are normal control flow) are not logged.
+**Why:** A 400 for bad input or a 429 for rate limiting is the system working as designed, not an incident. Logging them at error level would bury the genuine 500s (the ones that signal a real bug) in routine noise. The error log should draw attention to what is actually wrong.
+**Revisit when:** we ever deliberately throw a 5xx `HTTPException`; that branch would then need logging too.
+
+### Pretty logs in development, pure JSON in production
+
+**Decision:** In development, pipe the app's output through `pino-pretty` in the `dev` npm script (`... src/index.ts | pino-pretty`). `pino-pretty` is a dev dependency and is never referenced by application code.
+**Why:** Production wants raw JSON so the aggregator can parse it; a human at a dev terminal wants colorized, readable lines. Piping keeps the transformation at the very edge, in a separate downstream process, so `logger.ts` emits pure JSON in every environment and the production start path never touches the prettifier. The app writes the same bytes to stdout regardless; only what is wired to the far end of that stream differs.
+**Alternatives:** A pino transport configured inside `logger.ts` (self-contained, but places a dev-only tool inside code that also runs in production). Rejected to keep the production code path pure.
+
+### Postgres notices routed through the logger at debug
+
+**Decision:** Give the `postgres.js` client an `onnotice` handler that logs notices through pino at `debug` level, instead of letting the driver print them to the console by default.
+**Why:** By default the driver dumps every Postgres NOTICE (for example "relation already exists, skipping" from an idempotent `CREATE TABLE IF NOT EXISTS`) straight to the console as an unformatted object, bypassing our logger. Routing them through pino unifies all output under one logger, and `debug` places them below the default `info` threshold, so they stay invisible in normal operation but reappear on demand when the level is lowered.
+**Alternatives:** Silence notices entirely (`onnotice: () => {}`), rejected because it also discards any future notice that might matter; keep the driver default (unformatted, un-levelled console noise).
+
 ## Planned
 
 ### Discord OAuth (social login)
