@@ -1,14 +1,16 @@
 # Project Status
 
-Where Spired! is right now. The backend is in active development; the frontend has not started. This file tracks what is built, what is in progress, and what is still to come, so anyone reading knows where the project stands and where they could help.
+Where Spired! is right now. Stage 0 — the engineering foundations — is essentially complete; the next work is the public, readable product. This file tracks what is built, in progress, and planned, so anyone reading knows where the project stands and where they could help.
+
+The plan is ordered so the **readable, shareable product ships first**: the frontend is not a final phase — it enters at Stage 1, because the public page is the product. See [docs/](docs/) for the architecture, schema, and design decisions.
 
 **Legend:** ✅ done · 🔨 in progress · ⬜ planned
 
 ## Current focus
 
-The engineering foundations (security, authentication, authorization, CI, logging) are essentially complete. They were built before product features so that everything which follows inherits them instead of retrofitting. The next piece of work is a users-table corrections migration (soft-delete and email normalization), after which the content and library features begin.
+Finishing the last Stage 0 item — a users-table corrections migration (soft-delete and email normalization) — and then starting Stage 1: the content catalogue backend and the first public, no-login content pages, hand-seeded with real entries and founder-written reviews.
 
-## Foundations
+## Stage 0 — Foundations and auth core
 
 - ✅ Monorepo with npm workspaces (backend, frontend, shared)
 - ✅ Local PostgreSQL via Docker (separate dev and test databases)
@@ -16,69 +18,48 @@ The engineering foundations (security, authentication, authorization, CI, loggin
 - ✅ Continuous integration (GitHub Actions: type check and full test suite on every push and pull request)
 - ✅ Structured logging (pino, with a per-request logger)
 - ✅ Consistent JSON error envelope across all responses
+- ✅ Password hashing (bcrypt); session tokens (JWT) in HttpOnly cookies
+- ✅ Register, login, logout, current-user
+- ✅ `requireAuth`, `requireRole` (checked fresh from the database), `requireOwnership`
+- ✅ Secure response headers; rate limiting on the auth endpoints
+- 🔨 Users-table corrections: soft-delete and email normalization (the final Stage 0 item)
 
-## Authentication
-
-- ✅ Password hashing (bcrypt)
-- ✅ Session tokens (JWT) in HttpOnly cookies
-- ✅ Register, login, logout
-- ✅ Current-user endpoint
-- ⬜ Email verification
-- ⬜ Password reset and change email / password
-- ⬜ Account deletion and data export
-- ⬜ Session revocation ("log out everywhere")
-- ⬜ "Sign in with Discord" (OAuth)
-
-## Authorization and security
-
-- ✅ `requireAuth` (are you logged in)
-- ✅ `requireRole` (role-based access, checked fresh from the database)
-- ✅ `requireOwnership` (is this resource yours)
-- ✅ Secure response headers
-- ✅ Rate limiting on the auth endpoints
-- ⬜ Users-table corrections: soft-delete and email normalization (next up)
-
-## Content catalogue
+## Stage 1 — The public, readable product
 
 - ⬜ Content items and their category tables (games, supplements, adventures, actual plays, tools)
-- ⬜ Tags and slugs
-- ⬜ Submission and moderation (approve / reject)
+- ⬜ Tags, slugs, and content relations
 - ⬜ Full-text search
-- ⬜ Aggregate community ratings
+- ⬜ Aggregate community ratings (as a computed view)
+- ⬜ Public, server-rendered content pages, readable with no account
+- ⬜ Public catalogue and search
+- ⬜ Hand-seeded catalogue with founder-written reviews
+- ⬜ Minimal frontend shell (layout, navigation, the pages above)
 
-## Library, logs, and reviews
+## Stage 2 — The contributor loop
 
-- ⬜ Personal library (status and ownership per item)
-- ⬜ Log entries (the session diary)
-- ⬜ Reviews
+- ⬜ One-tap ratings
+- ⬜ Personal library (status and ownership per item), log entries, and reviews
+- ⬜ Public profiles with basic stats
+- ⬜ Ranked lists and tier lists
+- ⬜ Onboarding taste-picker
+- ⬜ Sign in with Discord
+- ⬜ Content submission with an approve/reject moderation queue
+- ⬜ Account recovery: email verification, password reset, change email / password (transactional email)
 
-## Social
+## Stage 3 — Retention and social
 
 - ⬜ Follows
-- ⬜ Activity feed
-- ⬜ Block and mute
+- ⬜ Personalised activity feed
 - ⬜ Notifications
+- ⬜ Likes on reviews and lists
 
-## Lists
+## Stage 4 — Hardening, trust and safety, and launch
 
-- ⬜ Ranked lists
-- ⬜ Tier lists
-
-## Trust and safety
-
-- ⬜ Reporting and flagging of content and reviews
-- ⬜ Moderation tooling
-- ⬜ Admin audit log
-
-## Frontend
-
-- ⬜ Not started. The Next.js scaffold exists, but no pages yet: catalogue and search, content detail, user profiles, auth pages, notifications, and an admin dashboard are all to come.
-
-## Deployment
-
-- ⬜ Move migrations to a dedicated deploy step (out of app startup)
-- ⬜ Backend and database on Railway, frontend on Vercel
-- ⬜ Custom domain, plus production cookie and CORS hardening
+- ⬜ Reporting and flagging, block and mute, moderation tooling, admin audit log
+- ⬜ Trusted-contributor role and richer role management
+- ⬜ Account deletion and data export; session revocation ("log out everywhere")
+- ⬜ Deploy hardening: migrations as a dedicated deploy step, split DB credentials, cross-site cookie and CORS lockdown, backups, error tracking, health checks
+- ⬜ Deployment: backend and database on Railway, frontend on Vercel, custom domain
 
 ## Where you can help
 

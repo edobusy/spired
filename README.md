@@ -10,7 +10,7 @@
 
 Tabletop RPGs are having a moment, but there is no good place to keep track of them. Film has Letterboxd. Books have Goodreads. Tabletop games have scattered forums, wikis, and spreadsheets.
 
-Spired! is that missing home. You log what you have played, rate it from 1 to 10 (shown as spires, not stars), review it, and organise it into lists. You follow curators and see what they are playing. The whole product is built around one simple loop: log, rate, review, follow.
+Spired! is that missing home. You log what you have played, rate it from 1 to 10 (shown as spires, not stars), review it, and organise it into lists — and everything you make lives on a clean public page you can share with no login wall. The product is built around a simple loop: read, rate, review, list, share. Following the curators whose taste you trust comes as the community grows.
 
 ## Tech stack
 
@@ -84,20 +84,21 @@ npm run test:run  # run once
 
 ## Roadmap
 
-The foundations are built. [STATUS.md](STATUS.md) has the live, detailed breakdown. In short, what comes next:
+The foundations are built. [STATUS.md](STATUS.md) has the live, detailed breakdown. The plan is ordered so the readable, shareable product ships first — nobody is drawn in by a backend they cannot see, so the frontend is not a final phase; it enters at Stage 1.
 
-**Core loop**
-- Content, library, and log entries (log and rate what you play).
-- Reviews, lists, and tier lists.
-- Follows and the activity feed.
+**Stage 1 — a public, readable product**
+- The content catalogue (games, supplements, adventures, actual plays, tools), with tags, search, and aggregate community ratings.
+- Public, server-rendered content pages readable with no account, and a hand-seeded catalogue with founder reviews.
 
-**Discovery**
-- Aggregate community ratings, tags, and full-text search.
+**Stage 2 — the contributor loop**
+- One-tap ratings, reviews, a personal library, and lists and tier lists.
+- Sign in with Discord, and email account recovery (verification, password reset, change email/password).
 
-**Hardening and launch**
-- Transactional email: verification, password reset, account deletion.
-- The Next.js frontend.
-- Deploy pipeline (Vercel and Railway).
+**Stage 3 — retention and social**
+- Follows, a personalised activity feed, notifications, and likes.
+
+**Stage 4 — hardening and launch**
+- Trust and safety, account deletion and data export, and the deploy pipeline (Vercel and Railway).
 
 ## Contributing
 

@@ -102,7 +102,7 @@ The core catalogue. Every game, supplement, adventure, actual play, and tool is 
 | publisher | Text | Optional |
 | published_year | Integer | Optional |
 | edition | Text | Optional, e.g. "5th Edition" |
-| external_url | Text | Optional, where to buy or find it |
+| external_url | Text | Optional. The official or publisher page — informational, not a store link. |
 
 ### supplements
 
@@ -138,7 +138,7 @@ The core catalogue. Every game, supplement, adventure, actual play, and tool is 
 |---|---|---|
 | content_item_id | UUID | Primary key, foreign key to content_items |
 | tool_type | Enum | `vtt`, `character_builder`, `map_maker`, `dice_roller`, `generator`, `other` |
-| external_url | Text | Optional, where to find or download it |
+| external_url | Text | Optional. The official or publisher page — informational, not a store link. |
 
 ### tool_platforms
 
