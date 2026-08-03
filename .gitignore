@@ -37,6 +37,10 @@ Thumbs.db
 # private/claude/settings.json and are copied here per machine.
 .claude/
 
+# Working instructions for AI assistants. Canonical copy lives in the private
+# repo at private/claude/CLAUDE.md and is copied here per machine.
+CLAUDE.md
+
 # Private companion repo (notes, course material, shared agent settings).
 # Cloned separately into private/ from github.com/edobusy/spired-private.
 private/
