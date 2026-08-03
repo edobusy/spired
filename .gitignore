@@ -32,6 +32,11 @@ Thumbs.db
 .idea/
 *.swp
 
-# Private working notes and course material (kept out of the code repo)
-notes/
-course/
+# Local agent/tool configuration. Never commit: it carries machine-specific
+# paths and permission grants. Shared settings live in the private repo at
+# private/claude/settings.json and are copied here per machine.
+.claude/
+
+# Private companion repo (notes, course material, shared agent settings).
+# Cloned separately into private/ from github.com/edobusy/spired-private.
+private/
