@@ -246,7 +246,7 @@ The REST pattern: a path identifies a resource, either a collection (`/reviews`)
 
 ### Discord OAuth (social login)
 
-**Decision:** Add "Sign in with Discord" (OAuth 2.0) as a second login method, built in Stage 2 alongside the contributor loop — not at deploy, and not now.
+**Decision:** Add "Sign in with Discord" (OAuth 2.0) as a second login method, built in Stage 2 alongside the contributor loop, not at deploy, and not now.
 **Why here, not later:** For this audience Discord login is an approachability feature, not a deploy-time nice-to-have: it removes the signup wall exactly when it first matters. Stage 1 is public and read-only, so no stranger creates an account; Stage 2 is where signup and the first contribution open up, so the lowest-friction way in belongs there, with the taste-picker and the rest of the join flow.
 **Why not sooner:** OAuth is a browser-redirect flow that needs a frontend to initiate the redirect and a registered, reachable callback URL. The frontend arrives in Stage 1, but there is nothing to sign in *for* until Stage 2 opens contribution. Email/password auth is already complete; OAuth is an additive method, not a missing piece.
 **Why Discord:** the TTRPG audience lives on Discord, so it is the most on-brand provider and a strong portfolio signal.

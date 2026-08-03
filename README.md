@@ -10,7 +10,7 @@
 
 Tabletop RPGs are having a moment, but there is no good place to keep track of them. Film has Letterboxd. Books have Goodreads. Tabletop games have scattered forums, wikis, and spreadsheets.
 
-Spired! is that missing home. You log what you have played, rate it from 1 to 10 (shown as spires, not stars), review it, and organise it into lists — and everything you make lives on a clean public page you can share with no login wall. The product is built around a simple loop: read, rate, review, list, share. Following the curators whose taste you trust comes as the community grows.
+Spired! is that missing home. You log what you have played, rate it from 1 to 10 (shown as spires, not stars), review it, and organise it into lists, and everything you make lives on a clean public page you can share with no login wall. The product is built around a simple loop: read, rate, review, list, share. Following the curators whose taste you trust comes as the community grows.
 
 ## Tech stack
 
@@ -90,20 +90,20 @@ npm run migration:new -- users_soft_delete
 
 ## Roadmap
 
-The foundations are built. [STATUS.md](STATUS.md) has the live, detailed breakdown. The plan is ordered so the readable, shareable product ships first — nobody is drawn in by a backend they cannot see, so the frontend is not a final phase; it enters at Stage 1.
+The foundations are built. [STATUS.md](STATUS.md) has the live, detailed breakdown. The plan is ordered so the readable, shareable product ships first. Nobody is drawn in by a backend they cannot see, so the frontend is not a final phase; it enters at Stage 1.
 
-**Stage 1 — a public, readable product**
+**Stage 1: a public, readable product**
 - The content catalogue (games, supplements, adventures, actual plays, tools), with tags, search, and aggregate community ratings.
 - Public, server-rendered content pages readable with no account, and a hand-seeded catalogue with founder reviews.
 
-**Stage 2 — the contributor loop**
+**Stage 2: the contributor loop**
 - One-tap ratings, reviews, a personal library, and lists and tier lists.
 - Sign in with Discord, and email account recovery (verification, password reset, change email/password).
 
-**Stage 3 — retention and social**
+**Stage 3: retention and social**
 - Follows, a personalised activity feed, notifications, and likes.
 
-**Stage 4 — hardening and launch**
+**Stage 4: hardening and launch**
 - Trust and safety, account deletion and data export, and the deploy pipeline (Vercel and Railway).
 
 ## Contributing
