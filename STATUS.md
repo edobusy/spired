@@ -1,16 +1,16 @@
 # Project Status
 
-Where Spired! is right now. Stage 0 — the engineering foundations — is essentially complete; the next work is the public, readable product. This file tracks what is built, in progress, and planned, so anyone reading knows where the project stands and where they could help.
+Where Spired! is right now. Stage 0, the engineering foundations, is essentially complete; the next work is the public, readable product. This file tracks what is built, in progress, and planned, so anyone reading knows where the project stands and where they could help.
 
-The plan is ordered so the **readable, shareable product ships first**: the frontend is not a final phase — it enters at Stage 1, because the public page is the product. See [docs/](docs/) for the architecture, schema, and design decisions.
+The plan is ordered so the **readable, shareable product ships first**. The frontend is not a final phase; it enters at Stage 1, because the public page is the product. See [docs/](docs/) for the architecture, schema, and design decisions.
 
 **Legend:** ✅ done · 🔨 in progress · ⬜ planned
 
 ## Current focus
 
-Finishing the last Stage 0 item — a users-table corrections migration (soft-delete and email normalization) — and then starting Stage 1: the content catalogue backend and the first public, no-login content pages, hand-seeded with real entries and founder-written reviews.
+Finishing the last Stage 0 item, a users-table corrections migration (soft-delete and email normalization), and then starting Stage 1: the content catalogue backend and the first public, no-login content pages, hand-seeded with real entries and founder-written reviews.
 
-## Stage 0 — Foundations and auth core
+## Stage 0: Foundations and auth core
 
 - ✅ Monorepo with npm workspaces (backend, frontend, shared)
 - ✅ Local PostgreSQL via Docker (separate dev and test databases)
@@ -24,7 +24,7 @@ Finishing the last Stage 0 item — a users-table corrections migration (soft-de
 - ✅ Secure response headers; rate limiting on the auth endpoints
 - 🔨 Users-table corrections: soft-delete and email normalization (the final Stage 0 item)
 
-## Stage 1 — The public, readable product
+## Stage 1: The public, readable product
 
 - ⬜ Content items and their category tables (games, supplements, adventures, actual plays, tools)
 - ⬜ Tags, slugs, and content relations
@@ -35,7 +35,7 @@ Finishing the last Stage 0 item — a users-table corrections migration (soft-de
 - ⬜ Hand-seeded catalogue with founder-written reviews
 - ⬜ Minimal frontend shell (layout, navigation, the pages above)
 
-## Stage 2 — The contributor loop
+## Stage 2: The contributor loop
 
 - ⬜ One-tap ratings
 - ⬜ Personal library (status and ownership per item), log entries, and reviews
@@ -46,14 +46,14 @@ Finishing the last Stage 0 item — a users-table corrections migration (soft-de
 - ⬜ Content submission with an approve/reject moderation queue
 - ⬜ Account recovery: email verification, password reset, change email / password (transactional email)
 
-## Stage 3 — Retention and social
+## Stage 3: Retention and social
 
 - ⬜ Follows
 - ⬜ Personalised activity feed
 - ⬜ Notifications
 - ⬜ Likes on reviews and lists
 
-## Stage 4 — Hardening, trust and safety, and launch
+## Stage 4: Hardening, trust and safety, and launch
 
 - ⬜ Reporting and flagging, block and mute, moderation tooling, admin audit log
 - ⬜ Trusted-contributor role and richer role management
