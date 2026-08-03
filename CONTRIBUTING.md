@@ -52,6 +52,21 @@ See the [README](README.md) for more detail on the setup.
 - **Comments explain the why, not the what**, and stay sparse to match the surrounding code.
 - **Significant design decisions get an entry** in [docs/decisions.md](docs/decisions.md), with the reasoning and the trade-off.
 
+## Database migrations
+
+Migrations live in `backend/src/db/migrations` and are plain `.sql` files. Generate one, never hand-name it:
+
+```bash
+npm run migration:new -- users_soft_delete
+```
+
+That creates `backend/src/db/migrations/<timestamp>_users_soft_delete.sql` and prints the path.
+
+- **Filenames are `YYYYMMDDHHMMSS_snake_case_description.sql`**, timestamped in UTC. The prefix is fixed-width, so alphabetical order is chronological, which is exactly the order the runner applies them in.
+- **The description must be snake_case** (lowercase letters, digits, underscores). The generator rejects anything else rather than tidying it up for you.
+- **The generated file fails on purpose.** It contains a `RAISE EXCEPTION` block. Write your SQL above it and delete the block. If you leave it, the migration fails loudly instead of being recorded as applied while doing nothing.
+- **Never edit a migration that has been applied**, and never rename one. The runner tracks applied migrations by filename in `schema_migrations`, so a rename reads as a brand-new migration and an edit will never re-run on a database that already has it. Fix a mistake with a new migration.
+
 ## Commit messages
 
 We use [Conventional Commits](https://www.conventionalcommits.org): `type(scope): summary`.
@@ -62,13 +77,14 @@ We use [Conventional Commits](https://www.conventionalcommits.org): `type(scope)
 
 Example: `feat(backend): add review creation endpoint`
 
-## Running the checks
+## Commands
 
 | Command | What it does |
 |---|---|
 | `npm test` | Run the tests in watch mode (local development) |
 | `npm run test:run` | Run the tests once |
 | `npm run typecheck` | Type-check with `tsc --noEmit` |
+| `npm run migration:new -- <description>` | Generate a new migration file (see above) |
 
 CI runs `test:run` and `typecheck` on every push and pull request, and both must pass before a change can be merged.
 
