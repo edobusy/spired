@@ -4,6 +4,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "node --env-file=../.env --watch --experimental-strip-types src/index.ts | pino-pretty",
+		"migration:new": "node scripts/new-migration.ts",
 		"test": "vitest",
 		"test:run": "vitest run",
 		"typecheck": "tsc --noEmit"

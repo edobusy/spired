@@ -82,6 +82,12 @@ npm test          # watch mode
 npm run test:run  # run once
 ```
 
+Create a database migration (never hand-name one, see [CONTRIBUTING.md](CONTRIBUTING.md)):
+
+```bash
+npm run migration:new -- users_soft_delete
+```
+
 ## Roadmap
 
 The foundations are built. [STATUS.md](STATUS.md) has the live, detailed breakdown. The plan is ordered so the readable, shareable product ships first — nobody is drawn in by a backend they cannot see, so the frontend is not a final phase; it enters at Stage 1.
