@@ -21,8 +21,10 @@ function validateBody<T extends z.ZodType>(schema: T) {
 
 export const authRouter = new Hono()
 
+const validatedLowercaseEmail = z.email().transform((email) => email.toLowerCase())
+
 const registerSchema = z.object({
-	email: z.email(),
+	email: validatedLowercaseEmail,
 	username: z
 		.string()
 		.min(3)
@@ -52,9 +54,9 @@ authRouter.post(
 			// 23505 is the Postgres code for violation of the UNIQUE constraint
 			if (err instanceof postgres.PostgresError && err.code === "23505") {
 				switch (err.constraint_name) {
-					case "users_email_key":
+					case "users_email_unique":
 						return c.json({ error: "Email already registered" }, 409)
-					case "users_username_key":
+					case "users_username_lower_unique":
 						return c.json({ error: "Username already taken" }, 409)
 				}
 			}
@@ -65,7 +67,7 @@ authRouter.post(
 )
 
 const loginSchema = z.object({
-	email: z.email(),
+	email: validatedLowercaseEmail,
 	password: z.string().min(1),
 })
 
@@ -78,7 +80,12 @@ authRouter.post(
 
 		const [user] = await db<
 			{ id: string; password_hash: string }[]
-		>`SELECT id, password_hash FROM users WHERE email = ${email}`
+		>`
+			SELECT id, password_hash
+			FROM users
+			WHERE email = ${email}
+			AND deleted_at IS NULL
+		`
 
 		if (!user) {
 			return c.json({ error: "Invalid credentials" }, 401)
