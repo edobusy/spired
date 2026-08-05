@@ -94,6 +94,7 @@ The core catalogue. Every game, supplement, adventure, actual play, and tool is 
 | id | UUID | Primary key, auto-generated |
 | category | Enum | `game`, `supplement`, `adventure`, `actual_play`, `tool` |
 | title | Text | The name of the item |
+| slug | Text | The public address, e.g. `spired.com/blades-in-the-dark`. Derived from the title by the application, not by the database: de-duplicating a collision means consulting other rows, which a generated column may not do. Unique among live rows only. |
 | description | Text | Optional summary |
 | cover_image_url | Text | Optional cover art (Cloudflare R2) |
 | submitted_by | UUID | Nullable. Foreign key to Users. Set to NULL if the submitting user is deleted. |
@@ -101,9 +102,20 @@ The core catalogue. Every game, supplement, adventure, actual play, and tool is 
 | actioned_by | UUID | Nullable. Foreign key to Users (the moderator who approved or rejected it). Set to NULL if that user is deleted. |
 | actioned_at | Timestamp | Nullable. When the submission was approved or rejected. |
 | rejection_reason | Text | Nullable. Populated when approval_status is rejected. |
+| deleted_at | Timestamp | Nullable. Null means the item is live. A timestamp means it has been soft-deleted. |
 | search_vector | tsvector | Generated column: `to_tsvector('english', title \|\| ' ' \|\| coalesce(description, ''))`. Indexed with GIN for full-text search. |
 | created_at | Timestamp | When the entry was submitted |
 | updated_at | Timestamp | When the entry was last edited |
+
+**Indexes**
+
+| Name | What it does |
+|---|---|
+| `content_items_slug_unique` | `UNIQUE (slug) WHERE deleted_at IS NULL`. Partial, so a soft-deleted item does not hold its address against every future item. |
+| `content_items_search_idx` | `GIN (search_vector)`. Serves full-text search. |
+| `content_items_list_idx` | `(created_at DESC, id DESC) WHERE approval_status = 'approved' AND deleted_at IS NULL`. Matches the public list query exactly, so it indexes only the rows that query can reach. |
+
+Every public read filters `WHERE approval_status = 'approved' AND deleted_at IS NULL`.
 
 ### games
 
@@ -184,6 +196,31 @@ Primary key: `(child_id, parent_id, relation_type)`
 
 Check constraint: `child_id != parent_id`. An item cannot be its own parent.
 
+## Tags
+
+An open, growing vocabulary of descriptive labels (`solo`, `pbta`, `horror`, `one-page`) that cut across categories. The category is the fixed five-value enum saying what kind of thing an item is; a tag is a free label, and a game and an actual play can both wear `horror`.
+
+Tags are not soft-deleted. A label is shared vocabulary rather than user content, so there is no deleted-row-squatting problem and a plain `UNIQUE` is the right constraint.
+
+### tags
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID | Primary key, auto-generated |
+| name | Text | Unique. The display label, e.g. `Heist`. |
+| slug | Text | Unique. The URL handle, so `spired.com/tag/heist` can exist. |
+
+### content_item_tags
+
+The join table. One row per (item, tag) pairing, so neither side repeats the other's data.
+
+| Column | Type | Notes |
+|---|---|---|
+| content_item_id | UUID | Foreign key to content_items |
+| tag_id | UUID | Foreign key to tags |
+
+Primary key: `(content_item_id, tag_id)`. The same tag cannot be attached to the same item twice.
+
 ## User Items
 
 One row per user per content item. Tracks the user's standing relationship with an item: their status and ownership. Exists independently of whether the user has written a review or a log entry.
@@ -245,10 +282,15 @@ A user's published written take on a content item. Distinct from a log entry, an
 | body | Text | Required, the review text |
 | contains_spoilers | Boolean | Default false |
 | visibility | Enum | `public`, `private`. Default `public`. |
+| deleted_at | Timestamp | Nullable. Null means the review is live. A timestamp means it has been retracted. |
 | created_at | Timestamp | |
 | updated_at | Timestamp | |
 
-Check constraint: `rating >= 1 AND rating <= 10`
+Check constraint: `rating IS NULL OR rating BETWEEN 1 AND 10`. Written with the explicit null branch rather than a bare `rating BETWEEN 1 AND 10`, which would evaluate to NULL for a scoreless review and pass anyway. Stating the intent beats relying on three-valued logic.
+
+Index: `reviews_content_item_idx` on `(content_item_id) WHERE deleted_at IS NULL`, the one access path public reads use.
+
+There is deliberately no unique constraint on `(user_id, content_item_id)`. A user may write more than one review of the same item over time, so each is its own row with its own `created_at`.
 
 **Canonical rating precedence.** A user's current rating for a content item is:
 
