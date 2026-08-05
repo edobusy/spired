@@ -92,6 +92,36 @@ CI confirmed the race is real, not theoretical: the first CI run failed because 
 **Trade-off:** Hand-written row types can drift from the actual table, since nothing forces them to match the migration. Accepted for now because the duplication is tiny.
 **Revisit when:** the same table is selected across several routes (extract a single shared row type), or we add data the database cannot shape-enforce (JSONB, tables written by other services). Validate those reads at the point they are read.
 
+### Email is canonicalised by the application and enforced by a CHECK, not stored as `citext`
+
+**Decision:** Lowercase the email in the application before it reaches the database, and add `CHECK (email = lower(email))` so a non-canonical address cannot be stored at all. The normalisation lives in the zod schema as a `.transform()`, shared by the register and login schemas so the two endpoints cannot disagree about what an email is.
+**Why:** Postgres offers `citext`, a case-insensitive text type that would make comparisons case-insensitive with no `lower()` anywhere. We rejected it on a specific distinction: **`citext` compensates for a violation, a CHECK enforces against one.** With `citext` a mixed-case address is stored happily and nothing ever fails, so the wrongness is hidden by the comparison rules rather than prevented. With a CHECK the wrong value cannot enter the column. The second reason is that `citext`'s case-insensitivity stops at the database boundary, and the address leaves our system into JWTs, logs, and eventually a transactional email provider. We want case-canonical *data*, not case-insensitive *comparison*.
+**Alternatives:** `citext` (above); normalising only in the application with no constraint (one forgotten call site silently stores a duplicate-in-effect address).
+**Trade-off:** normalisation becomes the application's job, and there are now two implementations of "lowercase", JavaScript's `toLowerCase()` and Postgres's `lower()`. They agree for ASCII but can diverge for some Unicode, because `lower()` depends on the database collation. The CHECK is the backstop that makes a disagreement fail loudly instead of storing something wrong.
+
+### Usernames keep their display case and are unique over `lower(username)`
+
+**Decision:** Store the username exactly as the user typed it, and enforce uniqueness over `lower(username)` with a functional index rather than folding the stored value.
+**Why:** A handle is something people present themselves with, and `EdoB` rendering as `edob` is a small but real loss they did not ask for. Uniqueness still has to be case-insensitive, or links become ambiguous and one user can impersonate another with a capitalisation trick. This is the GitHub and Twitter behaviour.
+**Alternatives:** fold usernames to lowercase like emails (simpler: one rule, one mechanism, no functional index, but it discards the user's chosen capitalisation); `citext` (more defensible here than for email, since a handle does not leave the system the way an address does).
+**Trade-off:** the deciding argument against `citext` was visibility at the call site. `WHERE lower(username) = lower($1)` states the rule in the query, whereas `citext` hides it in the column type, and using one mechanism for both columns beats using two. The cost is a real trap: write `WHERE username = $1` and two things break silently at once, the lookup becomes case-sensitive again and the functional index goes unused, because Postgres can only use it when the query repeats the indexed expression.
+
+### Uniqueness is enforced by partial indexes, not by UNIQUE constraints
+
+**Decision:** Drop the table-wide `users_email_key` and `users_username_key` constraints that `UNIQUE` generated, and replace them with `users_email_unique` and `users_username_lower_unique`, both carrying `WHERE deleted_at IS NULL`.
+**Why:** Soft-delete keeps the row, so a whole-table unique constraint would see a returning user's registration as a duplicate of their own deleted account. A soft-deleted user would permanently squat on their own email and username. A plain `UNIQUE` constraint cannot carry a `WHERE` clause, because a constraint is a whole-table declaration by definition; uniqueness across a *subset* of rows is only expressible as a partial index. That is why the constraints are dropped and re-created rather than altered in place.
+**Alternatives:** keep the constraints and free the email and username at deletion time (means editing user data on deletion, and reopens handle-squatting immediately rather than deliberately); no uniqueness enforcement in the database at all (unacceptable, application-level uniqueness checks race).
+**Trade-off:** these now appear under Indexes rather than as table-level constraints in `\d users`, and the names are application surface, because the register handler switches on `err.constraint_name` to report which field collided. Renaming either index without updating that switch turns a clean 409 into a 500. Also `deleted_at` is a nullable timestamp rather than an `is_deleted` boolean, because it answers both "is it deleted" and "when" in one column at no extra cost, which moderation and any future purge-after-N-days policy will want.
+**Revisit when:** account deletion is built in Stage 4. Releasing a soft-deleted user's handle back into circulation lets someone else inherit their inbound links and mentions, which is a real impersonation vector. It is deliberately unsolved here because no deletion flow exists yet to create the situation.
+
+### Soft-delete is enforced at the read, and `requireAuth` does not re-check the user
+
+**Decision:** Every query that reads a user filters `WHERE deleted_at IS NULL`, including the login lookup and `GET /me`. `requireAuth` continues to verify only the session token, without a database round trip to confirm the account is still live.
+**Why filter at the read:** a filter in the query means every future caller inherits it, whereas a check after the fact has to be remembered at each call site. It also means a deleted account is indistinguishable from one that never existed, so a stale token learns nothing about whether the account once existed.
+**The known gap:** because `requireAuth` is stateless, a session issued before deletion stays cryptographically valid until it expires. Any protected route that does not re-read the user would therefore still serve a soft-deleted account. Today that set is empty, since `GET /me` is the only authenticated route and it does its own filtered read, so there is no reachable path. It becomes live the moment a protected route is added that does not read the user.
+**Why not close it now:** the fix is either a database lookup on every authenticated request, or the `token_version` column already planned for session revocation. Both are a deliberate move from stateless JWTs toward per-request session checking, which is an architectural decision rather than a line in a migration.
+**Revisit when:** account deletion is built in Stage 4, alongside session revocation. That mechanism must cover deletion, not only "log out everywhere".
+
 ## API design
 
 ### REST for resources, RPC for actions
@@ -261,6 +291,8 @@ The REST pattern: a path identifies a resource, either a collection (`/reviews`)
 **Note:** logged early so the frontend API client is built with `credentials: 'include'` from day one. Development is unaffected, since `localhost` ports are same-site.
 
 ### Soft-delete for users, content, and reviews
+
+**Status:** implemented for `users` (see the Database section above for the decisions that followed from it). Still planned for `content_items` and `reviews`, which do not exist yet.
 
 **Decision:** Use soft-delete (a `deleted_at` timestamp) for `users`, `content_items`, and `reviews`, instead of hard delete plus cascade.
 **Why:** On a public platform of user-generated content, hard-deleting a user vaporises their reviews, lists, and logs from everyone who engaged with them, and is unrecoverable. Soft-delete lets us render "[deleted user]", keeps content moderatable and recoverable, and is the industry norm.

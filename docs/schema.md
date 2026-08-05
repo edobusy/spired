@@ -19,7 +19,7 @@ Defined once here to avoid repeating it per table.
 | `list_tiers` row | `list_items` where `tier_id` matches |
 | `roles` row | `user_roles` |
 
-> Note: users, content, and reviews will move to soft-delete (`deleted_at`) rather than hard cascade. See the decision log for why. The cascade rules above describe the current design for the tables that keep it.
+> Note: users, content, and reviews use soft-delete (`deleted_at`) rather than hard cascade. See the decision log for why. `users` has this now; `content_items` and `reviews` get it when they are built. The cascade rules above describe the current design for the tables that keep it.
 
 ## Users
 
@@ -28,9 +28,9 @@ One row per registered account.
 | Column | Type | Notes |
 |---|---|---|
 | id | UUID | Primary key, auto-generated |
-| email | Text | Unique, used to log in, not shown publicly |
+| email | Text | Used to log in, not shown publicly. Always stored lowercase. Unique among live accounts. |
 | email_verified | Boolean | Default false. True once the user clicks the confirmation email. |
-| username | Text | Unique URL handle (e.g. spired.com/edob). Set at registration, never changed. |
+| username | Text | URL handle (e.g. spired.com/edob). Stored with the capitalisation the user chose, but unique case-insensitively among live accounts. Set at registration, never changed. |
 | display_name | Text | Shown on the profile, can be changed |
 | password_hash | Text | Password stored in hashed form, never plain text |
 | bio | Text | Optional profile description |
@@ -40,6 +40,17 @@ One row per registered account.
 | avatar_url | Text | Optional link to profile picture (Cloudflare R2) |
 | created_at | Timestamp | When the account was created |
 | updated_at | Timestamp | When the profile was last modified |
+| deleted_at | Timestamp | Nullable. Null means the account is live. A timestamp means it has been soft-deleted. |
+
+**Constraints and indexes**
+
+| Name | What it does |
+|---|---|
+| `users_email_lowercase` | `CHECK (email = lower(email))`. The application normalises on the way in; this is the database refusing to hold a non-canonical address if it ever forgets. |
+| `users_email_unique` | `UNIQUE (email) WHERE deleted_at IS NULL`. Partial, so a soft-deleted account does not permanently block its own email from being registered again. |
+| `users_username_lower_unique` | `UNIQUE (lower(username)) WHERE deleted_at IS NULL`. Partial and functional: `EdoB` and `edob` cannot both exist, while the stored value keeps its capitalisation. |
+
+Every read of a user filters `WHERE deleted_at IS NULL`. Username lookups must be written `WHERE lower(username) = lower($1)`, because Postgres can only use a functional index when the query repeats the indexed expression.
 
 ## Roles
 

@@ -44,6 +44,7 @@ This is a portfolio project, so the goal is production-grade code, not the short
 - **Test-driven throughout.** Every feature starts with a failing test (vitest), then the code to pass it. Tests run against a real Postgres database, isolated per test.
 - **Security-first auth.** Passwords are hashed with bcrypt at a deliberate cost factor. Sessions use signed JWTs in HttpOnly cookies. Login and register are rate limited, and every response ships secure headers.
 - **A real authorization layer.** Three composable gates: `requireAuth` (are you logged in), `requireRole` (are you an admin or moderator), and `requireOwnership` (is this yours to change). Roles are checked fresh from the database, so access can be revoked instantly.
+- **Soft-delete done properly.** Deleting an account keeps the row, so the reviews and lists attached to it survive. The subtle part is what that breaks: a plain `UNIQUE` constraint would let a deleted account permanently squat on its own email, so uniqueness is enforced by partial indexes scoped to live rows only. Usernames are unique case-insensitively via a functional index, while still displaying the capitalisation their owner chose.
 - **Continuous integration.** Every push and pull request runs a type check and the full test suite against a Postgres service container. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 - **Structured logging.** Requests are logged with pino, and each request carries its own logger so logs can be traced end to end.
 

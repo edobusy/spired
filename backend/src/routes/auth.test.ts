@@ -136,6 +136,142 @@ describe("POST /auth/register", () => {
 
 		expect(body.error.toLowerCase()).toContain("username")
 	})
+
+	test("stores an uppercase-containing email lowercased in the database", async () => {
+		const payload = {
+			email: "USER@Test.teST",
+			username: "user",
+			display_name: "Test User",
+			password: "TestTest1000",
+		}
+
+		const res = await app.request("/auth/register", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+		})
+
+		expect(res.status).toBe(201)
+
+		const body = await res.json()
+
+		expect(body.user.email).toBe("user@test.test")
+
+		// Read the column back rather than trusting the response, so normalising only
+		// on the way out would still fail this.
+		const [stored] = await db<
+			{ email: string }[]
+		>`SELECT email FROM users WHERE id = ${body.user.id}`
+
+		expect(stored.email).toBe("user@test.test")
+	})
+
+	test("re-uses a soft-deleted user's email successfully", async () => {
+		const payload = {
+			email: "user@test.test",
+			username: "user",
+			display_name: "Test User",
+			password: "TestTest1000",
+		}
+
+		const res = await app.request("/auth/register", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+		})
+
+		expect(res.status).toBe(201)
+
+		const body = await res.json()
+
+		await softDeleteUser(body.user.id)
+
+		const sameEmailPayload = {
+			email: "user@test.test",
+			username: "user123",
+			display_name: "Test User 123",
+			password: "TestTest1000",
+		}
+
+		const sameEmailRes = await app.request("/auth/register", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(sameEmailPayload),
+		})
+
+		expect(sameEmailRes.status).toBe(201)
+
+		const sameEmailBody = await sameEmailRes.json()
+
+		// A genuinely new account, not the old row revived: soft-delete must leave
+		// the original in place.
+		expect(sameEmailBody.user.id).not.toBe(body.user.id)
+	})
+
+	test("rejects a username differing only in case from an existing, active one", async () => {
+		const payload = {
+			email: "user@test.test",
+			username: "user",
+			display_name: "Test User",
+			password: "TestTest1000",
+		}
+
+		const res = await app.request("/auth/register", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+		})
+
+		expect(res.status).toBe(201)
+
+		const sameUsernamePayload = {
+			email: "sameusername@test.test",
+			username: "uSeR",
+			display_name: "Test User 123",
+			password: "TestTest1000",
+		}
+
+		const sameUsernameRes = await app.request("/auth/register", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(sameUsernamePayload),
+		})
+
+		expect(sameUsernameRes.status).toBe(409)
+
+		const body = await sameUsernameRes.json()
+
+		expect(body.error.toLowerCase()).toContain("username")
+	})
+
+	test("preserves the capitalisation of the username it was given", async () => {
+		const payload = {
+			email: "user@test.test",
+			username: "EdoB",
+			display_name: "Test User",
+			password: "TestTest1000",
+		}
+
+		const res = await app.request("/auth/register", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+		})
+
+		expect(res.status).toBe(201)
+
+		const body = await res.json()
+
+		expect(body.user.username).toBe("EdoB")
+
+		// Guards the decision itself: uniqueness is enforced over lower(username), so
+		// nothing may fold the stored value on the way in.
+		const [stored] = await db<
+			{ username: string }[]
+		>`SELECT username FROM users WHERE id = ${body.user.id}`
+
+		expect(stored.username).toBe("EdoB")
+	})
 })
 
 async function registerTestUser() {
@@ -153,6 +289,10 @@ async function registerTestUser() {
 	})
 
 	return registrationRes
+}
+
+async function softDeleteUser(id: string) {
+	await db`UPDATE users SET deleted_at = NOW() WHERE id = ${id}`
 }
 
 describe("POST /auth/login", () => {
@@ -209,6 +349,84 @@ describe("POST /auth/login", () => {
 		})
 
 		expect(loginRes.status).toBe(401)
+	})
+
+	test("returns 200 when the email is typed in a different case", async () => {
+		await registerTestUser()
+
+		const loginPayload = {
+			email: "USER@Test.teST",
+			password: "TestTest1000",
+		}
+
+		const loginRes = await app.request("/auth/login", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(loginPayload),
+		})
+
+		expect(loginRes.status).toBe(200)
+	})
+
+	test("returns 401 for a soft-deleted user given the correct password", async () => {
+		const registrationRes = await registerTestUser()
+
+		expect(registrationRes.status).toBe(201)
+
+		const { user } = await registrationRes.json()
+
+		await softDeleteUser(user.id)
+
+		const loginPayload = {
+			email: "user@test.test",
+			password: "TestTest1000",
+		}
+
+		const loginRes = await app.request("/auth/login", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(loginPayload),
+		})
+
+		expect(loginRes.status).toBe(401)
+	})
+
+	test("authenticates the live row when a soft-deleted row shares the email", async () => {
+		const deletedRes = await registerTestUser()
+
+		expect(deletedRes.status).toBe(201)
+
+		const { user: deletedUser } = await deletedRes.json()
+
+		await softDeleteUser(deletedUser.id)
+
+		const returningPayload = {
+			email: "user@test.test",
+			username: "user123",
+			display_name: "Test User 123",
+			// Deliberately not the soft-deleted row's password: a lookup that picks the
+			// wrong row must fail rather than pass by coincidence.
+			password: "DifferentPass456",
+		}
+
+		const returningRes = await app.request("/auth/register", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(returningPayload),
+		})
+
+		expect(returningRes.status).toBe(201)
+
+		const loginRes = await app.request("/auth/login", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				email: "user@test.test",
+				password: "DifferentPass456",
+			}),
+		})
+
+		expect(loginRes.status).toBe(200)
 	})
 })
 

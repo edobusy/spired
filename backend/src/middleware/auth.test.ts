@@ -49,6 +49,27 @@ describe("requireAuth middleware", () => {
 
 		expect(body.user.id).toBe(user.id)
 	})
+
+	test("returns 404 when the token is valid but the user is soft-deleted", async () => {
+		const [user] = await db`
+		    INSERT INTO users (email, username, display_name, password_hash)
+		    VALUES ('deleted@test.test', 'deleteduser', 'Deleted User', 'test_hash')
+		    RETURNING id
+	    `
+
+		await db`UPDATE users SET deleted_at = NOW() WHERE id = ${user.id}`
+
+		// The token stays cryptographically valid after deletion, so the read is the
+		// only thing standing between a deleted account and a live session.
+		const jwt = await createToken(user.id)
+
+		const res = await app.request("/me", {
+			method: "GET",
+			headers: { Cookie: `session=${jwt}` },
+		})
+
+		expect(res.status).toBe(404)
+	})
 })
 
 const testEndpoint = new Hono()

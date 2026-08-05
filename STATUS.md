@@ -1,6 +1,6 @@
 # Project Status
 
-Where Spired! is right now. Stage 0, the engineering foundations, is essentially complete; the next work is the public, readable product. This file tracks what is built, in progress, and planned, so anyone reading knows where the project stands and where they could help.
+Where Spired! is right now. Stage 0, the engineering foundations, is complete; the next work is the public, readable product. This file tracks what is built, in progress, and planned, so anyone reading knows where the project stands and where they could help.
 
 The plan is ordered so the **readable, shareable product ships first**. The frontend is not a final phase; it enters at Stage 1, because the public page is the product. See [docs/](docs/) for the architecture, schema, and design decisions.
 
@@ -8,7 +8,7 @@ The plan is ordered so the **readable, shareable product ships first**. The fron
 
 ## Current focus
 
-Finishing the last Stage 0 item, a users-table corrections migration (soft-delete and email normalization), and then starting Stage 1: the content catalogue backend and the first public, no-login content pages, hand-seeded with real entries and founder-written reviews.
+Stage 0 is closed. Next is Stage 1: the content catalogue backend and the first public, no-login content pages, hand-seeded with real entries and founder-written reviews.
 
 ## Stage 0: Foundations and auth core
 
@@ -22,7 +22,7 @@ Finishing the last Stage 0 item, a users-table corrections migration (soft-delet
 - ✅ Register, login, logout, current-user
 - ✅ `requireAuth`, `requireRole` (checked fresh from the database), `requireOwnership`
 - ✅ Secure response headers; rate limiting on the auth endpoints
-- 🔨 Users-table corrections: soft-delete and email normalization (the final Stage 0 item)
+- ✅ Users-table corrections: soft-delete (`deleted_at`) with partial unique indexes, canonical lowercase email, case-insensitive username uniqueness, timestamps with time zone
 
 ## Stage 1: The public, readable product
 
