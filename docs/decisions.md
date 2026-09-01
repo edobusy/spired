@@ -132,6 +132,31 @@ CI confirmed the race is real, not theoretical: the first CI run failed because 
 **Why not close it now:** the fix is either a database lookup on every authenticated request, or the `token_version` column already planned for session revocation. Both are a deliberate move from stateless JWTs toward per-request session checking, which is an architectural decision rather than a line in a migration.
 **Revisit when:** account deletion is built in Stage 4, alongside session revocation. That mechanism must cover deletion, not only "log out everywhere".
 
+## Backend structure
+
+### Patterns are expressed as functions and modules, not classes
+
+**Decision:** Structure the backend out of plain functions, closures, and ES modules. No classes, no interface with a single implementation, no dependency-injection container.
+**Why:** The classical patterns are present, in the idiom of the language actually being used. `requireRole(name)` and `requireOwnership(table, column)` are factories. The middleware stack is a chain of responsibility. `app.onError` is an error boundary. `index.ts` is a composition root. `config.ts` is a module singleton with fail-fast validation. `validateBody(schema)` decorates a handler. Much of the classical catalogue exists to supply what older languages lacked: first-class functions, closures, and modules. TypeScript has all three, so wrapping them in class ceremony would add typing without adding structure.
+**Alternatives:** A NestJS-style provider and decorator architecture, rejected for the same reason NestJS itself was (see the Tech stack section): too much abstraction for the size of this project.
+**Trade-off:** A reader who expects the enterprise vocabulary may mistake the absence of that vocabulary for an absence of design. This entry is the answer to that reading.
+
+### No service or repository layer; handlers hold their own SQL
+
+**Decision:** Route handlers query the database directly through the shared `postgres.js` client. There is no service layer, no repository abstraction, and no DTO or mapper step between a database row and a JSON response.
+**Why:** Every handler today is one statement plus its error mapping. A service layer over that would be indirection with nothing behind it: a function that forwards its arguments to a query and returns the result unchanged. The row shapes are already the response shapes, chosen column by column in the `RETURNING` and `SELECT` lists, so a mapper would restate the same field names a third time.
+**Why this is not debt:** debt is when the shape of the code today makes a change tomorrow more expensive than it needed to be. Extracting a query out of a handler is a mechanical move, because handlers are plain functions and every query is already isolated inside a tagged template. The seam exists whether or not it is drawn. Deferring therefore costs nothing and buys information: the eventual interface can be shaped by what the content routes actually need, instead of guessed at now.
+**Alternatives:** Introduce the layer up front, rejected as speculative for the reason given under "Parameterise the variance that actually occurs": it would be designed against imaginary call sites. A repository abstraction to allow mocking the database in tests, rejected because the suite runs against a real test database on purpose, and that fidelity is worth more than the isolation.
+**Trade-off:** Nothing structural prevents the same query being written twice in two handlers. The guard is the trigger list below, applied honestly during review, not the architecture.
+**Revisit when:** any one of these fires. Take the smallest step that resolves it, meaning a query module for that one feature area rather than a layer imposed across the whole app.
+
+- The same query appears in a second handler. The first duplication, not the third.
+- A handler needs two or more writes to be atomic, since transaction scope is a domain concern and not a routing one.
+- One piece of logic needs enough test cases that driving them all through HTTP becomes the slow part.
+- A handler stops fitting on a single screen.
+
+Content items with their category tables, tags, and aggregate ratings are expected to trip the first trigger during Stage 1, which is the point at which this should be reread rather than assumed still true.
+
 ## API design
 
 ### REST for resources, RPC for actions
