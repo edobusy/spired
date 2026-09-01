@@ -38,6 +38,8 @@ spired/
 └── frontend/             the Next.js app (not started yet)
 ```
 
+The backend layout is deliberately flat. Route handlers query the database directly, with no service or repository layer in between, and cross-cutting behaviour lives in `middleware/` rather than in a class hierarchy. That is a considered choice rather than an omission: see [Backend structure](decisions.md#backend-structure) in the design decisions for the reasoning, and for the specific signals that would tell us to add a layer.
+
 ## How a request flows
 
 When a user opens a page:
